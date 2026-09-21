@@ -1,0 +1,10 @@
+.venv
+.env
+
+
+# -------------------------
+# Python
+# -------------------------
+.pytest_cache/
+agent_llm.egg-info/
+__pycache__/
