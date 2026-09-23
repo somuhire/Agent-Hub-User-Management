@@ -1,0 +1,84 @@
+services:
+
+  user-management:
+    image: ${AGENTHUB_USER_IMAGE}
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: agent-user-management
+    restart: unless-stopped
+    init: true
+
+    environment:
+      APP_NAME: ${APP_NAME:-AgentPlatform}
+      APP_ENV: ${APP_ENV:-production}
+      DEBUG: ${DEBUG:-false}
+
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+
+      ARTIFACT_STORAGE_PATH: /var/lib/agent-artifacts
+      RUNTIME_LOG_STORAGE_PATH: /var/lib/agent-artifacts/runtime-logs
+
+      RUNTIME_LOG_MAX_BYTES: ${AGENT_RUNTIME_LOG_MAX_BYTES:-10485760}
+      RUNTIME_LOG_BACKUP_COUNT: ${AGENT_RUNTIME_LOG_BACKUP_COUNT:-5}
+      RUNTIME_LOG_READ_LIMIT: ${AGENT_RUNTIME_LOG_READ_LIMIT:-2000}
+
+      REGISTRY_URL: ${REGISTRY_URL:-ghcr.io}
+      REGISTRY_USERNAME: ${REGISTRY_USERNAME:-}
+      REGISTRY_PASSWORD: ${REGISTRY_PASSWORD:-}
+      REGISTRY_AUTH_FILE: ${REGISTRY_AUTH_FILE:-}
+
+      CONTAINER_ENGINE: ${CONTAINER_ENGINE:-podman}
+
+      BUILD_IMAGE_NAMESPACE: ${BUILD_IMAGE_NAMESPACE}
+      BUILD_IMAGE_PREFIX: ${BUILD_IMAGE_PREFIX:-agenthub-agent}
+
+      BUILD_TIMEOUT_SECONDS: ${BUILD_TIMEOUT_SECONDS:-600}
+      PUSH_TIMEOUT_SECONDS: ${PUSH_TIMEOUT_SECONDS:-600}
+
+      RUNTIME_MCP_API_URL: ${RUNTIME_MCP_API_URL:-http://mcp-management:8001}
+      RUNTIME_LLM_API_URL: ${RUNTIME_LLM_API_URL:-http://llm-management:8003}
+
+      AUTH_TOKEN_URL: ${AUTH_TOKEN_URL:-http://user-management:8000/auth/login}
+
+    ports:
+      - "${USER_MANAGEMENT_PORT:-8000}:8000"
+
+    volumes:
+      - agenthub-user-artifacts:/var/lib/agent-artifacts
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)\""
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+    networks:
+      - agenthub
+
+networks:
+  agenthub:
+    external: true
+    name: agenthub-net
+
+volumes:
+  agenthub-user-artifacts:
+    name: agenthub-user-artifacts
